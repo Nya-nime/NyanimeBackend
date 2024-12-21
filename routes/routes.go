@@ -11,11 +11,15 @@ import (
 func SetupRoutes() *mux.Router {
 	router := mux.NewRouter()
 
+	router.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "https://nya-nime.github.io/Nyanime/", http.StatusFound)
+	}).Methods("GET")
+
 	// User Routes
 	userRouter := router.PathPrefix("/user").Subrouter()
-	userRouter.HandleFunc("/register", controller.Register).Methods("POST")
+	userRouter.HandleFunc("/register", controller.Register).Methods("OPTIONS", "POST")
 	userRouter.HandleFunc("/login", controller.Login).Methods("POST")
-	userRouter.Handle("/profile", utils.AuthMiddleware(http.HandlerFunc(controller.GetProfile))).Methods("GET")
+	userRouter.Handle("/profile", utils.AuthMiddleware(http.HandlerFunc(controller.GetUserProfile))).Methods("GET")
 	userRouter.Handle("/logout", utils.AuthMiddleware(http.HandlerFunc(controller.Logout))).Methods("POST")
 
 	// Anime Routes (Admin Privileges)

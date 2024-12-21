@@ -7,10 +7,10 @@ import (
 	"NYANIMEBACKEND/models"
 	"NYANIMEBACKEND/utils"
 
-	"github.com/gorilla/mux"
 	"golang.org/x/crypto/bcrypt"
 )
 
+// Register handler
 // Register handler
 func Register(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
@@ -22,6 +22,19 @@ func Register(w http.ResponseWriter, r *http.Request) {
 	err := json.NewDecoder(r.Body).Decode(&user)
 	if err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	// Validasi input
+	if user.Username == "" || user.Email == "" || user.Password == "" || user.Role == "" {
+		http.Error(w, "Username, email, password, and role are required", http.StatusBadRequest)
+		return
+	}
+
+	// Cek duplikasi email
+	var existingUser models.User
+	if err := utils.DB.Where("email = ?", user.Email).First(&existingUser).Error; err == nil {
+		http.Error(w, "Email already registered", http.StatusConflict)
 		return
 	}
 
@@ -39,8 +52,13 @@ func Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Kembalikan respons dengan informasi pengguna tanpa password
+	user.Password = "" // Hapus password dari objek user
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(map[string]string{"message": "User registered successfully"})
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"message": "User registered successfully",
+		"user":    user, // Mengembalikan informasi pengguna yang baru terdaftar tanpa password
+	})
 }
 
 // Login handler
@@ -73,11 +91,11 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Return success response
+	// Return success response with user role
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"message": "Login successful",
-		"user":    user,
+		"user":    user, // Mengembalikan informasi pengguna termasuk role
 	})
 }
 
@@ -175,7 +193,7 @@ func AddReview(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userID := r.Context().Value("userID").(int)
+	userID := r.Context().Value("userID").(int) // Ambil userID dari konteks
 
 	var review models.Review
 	err := json.NewDecoder(r.Body).Decode(&review)
@@ -184,7 +202,7 @@ func AddReview(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	review.UserID = userID
+	review.UserID = userID // Set userID untuk review
 
 	if err := utils.DB.Create(&review).Error; err != nil {
 		http.Error(w, "Failed to add review", http.StatusInternalServerError)
@@ -201,8 +219,6 @@ func EditReview(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userID := r.Context().Value("userID").(int)
-
 	var review models.Review
 	err := json.NewDecoder(r.Body).Decode(&review)
 	if err != nil {
@@ -210,20 +226,13 @@ func EditReview(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Verifikasi bahwa review milik user yang login
-	var existingReview models.Review
-	if err := utils.DB.Where("id = ? AND user_id = ?", review.ID, userID).First(&existingReview).Error; err != nil {
-		http.Error(w, "Review not found or unauthorized", http.StatusNotFound)
-		return
-	}
-
-	if err := utils.DB.Model(&existingReview).Updates(review).Error; err != nil {
-		http.Error(w, "Failed to edit review", http.StatusInternalServerError)
+	if err := utils.DB.Save(&review).Error; err != nil {
+		http.Error(w, "Failed to update review", http.StatusInternalServerError)
 		return
 	}
 
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(existingReview)
+	json.NewEncoder(w).Encode(review)
 }
 
 func DeleteReview(w http.ResponseWriter, r *http.Request) {
@@ -232,8 +241,6 @@ func DeleteReview(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userID := r.Context().Value("userID").(int)
-
 	var review models.Review
 	err := json.NewDecoder(r.Body).Decode(&review)
 	if err != nil {
@@ -241,8 +248,7 @@ func DeleteReview(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Verifikasi bahwa review milik user yang login
-	if err := utils.DB.Where("id = ? AND user_id = ?", review.ID, userID).Delete(&models.Review{}).Error; err != nil {
+	if err := utils.DB.Delete(&review).Error; err != nil {
 		http.Error(w, "Failed to delete review", http.StatusInternalServerError)
 		return
 	}
@@ -251,13 +257,11 @@ func DeleteReview(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]string{"message": "Review deleted successfully"})
 }
 
-func GetProfile(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	userID := vars["id"]
+func GetUserProfile(w http.ResponseWriter, r *http.Request) {
+	userID := r.Context().Value("userID").(int) // Ambil userID dari konteks
 
 	var user models.User
-	err := utils.DB.Preload("Reviews").Preload("Favorites").First(&user, userID).Error
-	if err != nil {
+	if err := utils.DB.Preload("Reviews").First(&user, userID).Error; err != nil {
 		http.Error(w, "User not found", http.StatusNotFound)
 		return
 	}
