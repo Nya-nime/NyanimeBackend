@@ -8,7 +8,7 @@ import (
 func SetupCORS() *cors.Cors {
 	return cors.New(cors.Options{
 		AllowedOrigins:   []string{"https://nya-nime.github.io/Nyanime/"}, // Ganti dengan domain frontend Anda jika perlu
-		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE"},
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Content-Type"},
 		AllowCredentials: true,
 	})

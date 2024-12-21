@@ -11,8 +11,16 @@ import (
 )
 
 // Register handler
-// Register handler
 func Register(w http.ResponseWriter, r *http.Request) {
+	// Menangani permintaan OPTIONS
+	if r.Method == http.MethodOptions {
+		w.Header().Set("Access-Control-Allow-Origin", "https://nya-nime.github.io/Nyanime/") // Ganti dengan domain frontend Anda jika perlu
+		w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -53,7 +61,9 @@ func Register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Kembalikan respons dengan informasi pengguna tanpa password
-	user.Password = "" // Hapus password dari objek user
+	user.Password = ""                                                                   // Hapus password dari objek user
+	w.Header().Set("Access-Control-Allow-Origin", "https://nya-nime.github.io/Nyanime/") // Ganti dengan domain frontend Anda jika perlu
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"message": "User registered successfully",
