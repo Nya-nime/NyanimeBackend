@@ -11,6 +11,7 @@ import (
 func SetupRoutes() *mux.Router {
 	router := mux.NewRouter()
 
+	// Redirect root to the frontend
 	router.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "https://nya-nime.github.io/Nyanime/", http.StatusFound)
 	}).Methods("GET")
@@ -24,10 +25,10 @@ func SetupRoutes() *mux.Router {
 
 	// Anime Routes (Admin Privileges)
 	animeRouter := router.PathPrefix("/anime").Subrouter()
-	animeRouter.HandleFunc("/", controller.GetAllAnime).Methods("GET") // Semua user bisa lihat
-	animeRouter.Handle("/", utils.AuthMiddleware(utils.AdminMiddleware(http.HandlerFunc(controller.CreateAnime)))).Methods("POST")
-	animeRouter.Handle("/{id}", utils.AuthMiddleware(utils.AdminMiddleware(http.HandlerFunc(controller.EditAnime)))).Methods("PUT")
-	animeRouter.Handle("/{id}", utils.AuthMiddleware(utils.AdminMiddleware(http.HandlerFunc(controller.DeleteAnime)))).Methods("DELETE")
+	animeRouter.HandleFunc("/", controller.GetAllAnime).Methods("GET")                                                                   // Semua user bisa lihat
+	animeRouter.Handle("/", utils.AuthMiddleware(utils.AdminMiddleware(http.HandlerFunc(controller.CreateAnime)))).Methods("POST")       // Menambahkan anime
+	animeRouter.Handle("/{id}", utils.AuthMiddleware(utils.AdminMiddleware(http.HandlerFunc(controller.EditAnime)))).Methods("PUT")      // Mengedit anime
+	animeRouter.Handle("/{id}", utils.AuthMiddleware(utils.AdminMiddleware(http.HandlerFunc(controller.DeleteAnime)))).Methods("DELETE") // Menghapus anime
 
 	// Review Routes
 	reviewRouter := router.PathPrefix("/review").Subrouter()

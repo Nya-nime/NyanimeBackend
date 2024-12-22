@@ -7,6 +7,7 @@ import (
 	"NYANIMEBACKEND/models"
 	"NYANIMEBACKEND/utils"
 
+	"github.com/gorilla/mux"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -101,11 +102,19 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Return success response with user role
+	// Generate JWT token
+	token, err := utils.GenerateToken(user.ID, user.Role) // Pastikan user.ID dan user.Role ada
+	if err != nil {
+		http.Error(w, "Failed to generate token", http.StatusInternalServerError)
+		return
+	}
+
+	// Return success response with token
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"message": "Login successful",
-		"user":    user, // Mengembalikan informasi pengguna termasuk role
+		"user":    user,  // Mengembalikan informasi pengguna termasuk role
+		"token":   token, // Mengembalikan token JWT
 	})
 }
 
@@ -121,6 +130,11 @@ func GetAllAnime(w http.ResponseWriter, r *http.Request) {
 
 	if err := utils.DB.Find(&animes).Error; err != nil {
 		http.Error(w, "Failed to fetch anime", http.StatusInternalServerError)
+		return
+	}
+
+	if len(animes) == 0 {
+		w.WriteHeader(http.StatusNoContent) // 204 No Content jika tidak ada anime
 		return
 	}
 
@@ -142,11 +156,18 @@ func CreateAnime(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Validasi data anime (misalnya, pastikan title tidak kosong)
+	if anime.Title == "" {
+		http.Error(w, "Title is required", http.StatusBadRequest)
+		return
+	}
+
 	if err := utils.DB.Create(&anime).Error; err != nil {
 		http.Error(w, "Failed to create anime", http.StatusInternalServerError)
 		return
 	}
 
+	w.Header().Set("Access-Control-Allow-Origin", "https://nya-nime.github.io/Nyanime/")
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(anime)
 }
@@ -165,11 +186,18 @@ func EditAnime(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Validasi ID
+	if anime.ID == 0 {
+		http.Error(w, "ID is required", http.StatusBadRequest)
+		return
+	}
+
 	if err := utils.DB.Model(&models.Anime{}).Where("id = ?", anime.ID).Updates(anime).Error; err != nil {
 		http.Error(w, "Failed to edit anime", http.StatusInternalServerError)
 		return
 	}
 
+	w.Header().Set("Access-Control-Allow-Origin", "https://nya-nime.github.io/Nyanime/")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(anime)
 }
@@ -181,18 +209,16 @@ func DeleteAnime(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var anime models.Anime
-	err := json.NewDecoder(r.Body).Decode(&anime)
-	if err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
-		return
-	}
+	// Ambil ID dari URL
+	vars := mux.Vars(r)
+	id := vars["id"]
 
-	if err := utils.DB.Delete(&anime).Error; err != nil {
+	if err := utils.DB.Delete(&models.Anime{}, id).Error; err != nil {
 		http.Error(w, "Failed to delete anime", http.StatusInternalServerError)
 		return
 	}
 
+	w.Header().Set("Access-Control-Allow-Origin", "https://nya-nime.github.io/Nyanime/")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]string{"message": "Anime deleted successfully"})
 }

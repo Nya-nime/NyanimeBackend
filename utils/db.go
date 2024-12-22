@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"NYANIMEBACKEND/models"
 	"fmt"
 	"log"
 	"os"
@@ -40,7 +41,7 @@ func InitDB() {
 
 	// Format DSN (Data Source Name) untuk MySQL
 	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
-		"root", "ini_passwordnyabaruyaa14", "127.0.0.1", "3306", "animeKita",
+		dbUser, dbPass, dbHost, dbPort, dbName,
 	)
 
 	// Koneksi ke database
@@ -58,7 +59,8 @@ func InitDB() {
 
 func autoMigrateModels() {
 	err := DB.AutoMigrate(
-	// Model-model Anda di sini
+		&models.User{},
+		&models.Anime{},
 	)
 	if err != nil {
 		log.Fatalf("Failed to auto-migrate models: %v", err)

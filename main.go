@@ -6,9 +6,17 @@ import (
 
 	"NYANIMEBACKEND/routes"
 	"NYANIMEBACKEND/utils"
+
+	"github.com/joho/godotenv" // Import godotenv
 )
 
 func main() {
+	// Muat variabel lingkungan dari file .env
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
+
 	// Inisialisasi Database
 	utils.InitDB()
 
