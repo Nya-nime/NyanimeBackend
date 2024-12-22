@@ -4,6 +4,8 @@ import (
 	"context"
 	"net/http"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 )
@@ -54,4 +56,25 @@ type CustomClaims struct {
 	UserID int    `json:"user_id"`
 	Role   string `json:"role"`
 	jwt.RegisteredClaims
+}
+
+// Blacklist untuk menyimpan token yang diblacklist
+var tokenBlacklist = struct {
+	sync.RWMutex
+	m map[string]time.Time
+}{m: make(map[string]time.Time)}
+
+// AddToBlacklist menambahkan token ke blacklist
+func AddToBlacklist(token string) {
+	tokenBlacklist.Lock()
+	defer tokenBlacklist.Unlock()
+	tokenBlacklist.m[token] = time.Now() // Menyimpan waktu saat token diblacklist
+}
+
+// IsBlacklisted memeriksa apakah token ada di blacklist
+func IsBlacklisted(token string) bool {
+	tokenBlacklist.RLock()
+	defer tokenBlacklist.RUnlock()
+	_, exists := tokenBlacklist.m[token]
+	return exists
 }

@@ -3,6 +3,7 @@ package controller
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 
 	"NYANIMEBACKEND/models"
 	"NYANIMEBACKEND/utils"
@@ -130,9 +131,36 @@ func Login(w http.ResponseWriter, r *http.Request) {
 }
 
 func Logout(w http.ResponseWriter, r *http.Request) {
-	// Contoh: Hapus token atau session user
+	// Menangani permintaan OPTIONS
+	if r.Method == http.MethodOptions {
+		w.Header().Set("Access-Control-Allow-Origin", "http://127.0.0.1:5500") // Ganti dengan URL frontend Anda
+		w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Ambil token dari header Authorization
+	authHeader := r.Header.Get("Authorization")
+	if authHeader == "" {
+		http.Error(w, "Authorization header is required", http.StatusUnauthorized)
+		return
+	}
+
+	// Token biasanya dalam format "Bearer <token>"
+	token := strings.TrimPrefix(authHeader, "Bearer ")
+	utils.AddToBlacklist(token)
+	// Tambahkan token ke blacklist atau logika lain di sini
+
+	// Kirim respons sukses
+	w.Header().Set("Access-Control-Allow-Origin", "http://127.0.0.1:5500")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]string{"message": "Logout successful"})
+	w.Write([]byte("Logout successful"))
 }
 
 // GetAllAnime handler
