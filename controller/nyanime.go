@@ -15,7 +15,7 @@ import (
 func Register(w http.ResponseWriter, r *http.Request) {
 	// Menangani permintaan OPTIONS
 	if r.Method == http.MethodOptions {
-		w.Header().Set("Access-Control-Allow-Origin", "https://nya-nime.github.io/Nyanime/") // Ganti dengan domain frontend Anda jika perlu
+		w.Header().Set("Access-Control-Allow-Origin", "http://127.0.0.1:5500") // Ganti dengan domain frontend Anda jika perlu
 		w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
 		w.WriteHeader(http.StatusOK)
@@ -62,8 +62,8 @@ func Register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Kembalikan respons dengan informasi pengguna tanpa password
-	user.Password = ""                                                                   // Hapus password dari objek user
-	w.Header().Set("Access-Control-Allow-Origin", "https://nya-nime.github.io/Nyanime/") // Ganti dengan domain frontend Anda jika perlu
+	user.Password = ""                                                     // Hapus password dari objek user
+	w.Header().Set("Access-Control-Allow-Origin", "http://127.0.0.1:5500") // Ganti dengan domain frontend Anda jika perlu
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(map[string]interface{}{
@@ -74,6 +74,15 @@ func Register(w http.ResponseWriter, r *http.Request) {
 
 // Login handler
 func Login(w http.ResponseWriter, r *http.Request) {
+	// Menangani permintaan OPTIONS
+	if r.Method == http.MethodOptions {
+		w.Header().Set("Access-Control-Allow-Origin", "http://127.0.0.1:5500")
+		w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -110,11 +119,13 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Return success response with token
+	w.Header().Set("Access-Control-Allow-Origin", "http://127.0.0.1:5500")
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"message": "Login successful",
-		"user":    user,  // Mengembalikan informasi pengguna termasuk role
-		"token":   token, // Mengembalikan token JWT
+		"user":    map[string]interface{}{"id": user.ID, "email": user.Email, "role": user.Role}, // Hanya mengembalikan informasi yang diperlukan
+		"token":   token,
 	})
 }
 
@@ -167,7 +178,7 @@ func CreateAnime(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Access-Control-Allow-Origin", "https://nya-nime.github.io/Nyanime/")
+	w.Header().Set("Access-Control-Allow-Origin", "http://127.0.0.1:5500")
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(anime)
 }
@@ -197,7 +208,7 @@ func EditAnime(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Access-Control-Allow-Origin", "https://nya-nime.github.io/Nyanime/")
+	w.Header().Set("Access-Control-Allow-Origin", "http://127.0.0.1:5500")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(anime)
 }
@@ -218,7 +229,7 @@ func DeleteAnime(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Access-Control-Allow-Origin", "https://nya-nime.github.io/Nyanime/")
+	w.Header().Set("Access-Control-Allow-Origin", "http://127.0.0.1:5500")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]string{"message": "Anime deleted successfully"})
 }

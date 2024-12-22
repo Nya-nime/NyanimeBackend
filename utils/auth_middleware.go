@@ -44,7 +44,7 @@ func AuthMiddleware(next http.Handler) http.Handler {
 func VerifyToken(tokenString string) (*jwt.Token, *CustomClaims, error) {
 	claims := &CustomClaims{}
 	token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
-		return []byte("your_secret_key"), nil
+		return []byte("G3n3r@t3dS3cr3tK3y!2024"), nil
 	})
 	return token, claims, err
 }

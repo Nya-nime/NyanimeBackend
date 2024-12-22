@@ -11,15 +11,18 @@ import (
 func SetupRoutes() *mux.Router {
 	router := mux.NewRouter()
 
+	router.HandleFunc("/user/register", controller.Register).Methods("POST", "OPTIONS")
+	router.HandleFunc("/user/login", controller.Login).Methods("POST", "OPTIONS")
+
 	// Redirect root to the frontend
 	router.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		http.Redirect(w, r, "https://nya-nime.github.io/Nyanime/", http.StatusFound)
+		http.Redirect(w, r, "http://127.0.0.1:5500", http.StatusFound)
 	}).Methods("GET")
 
 	// User Routes
 	userRouter := router.PathPrefix("/user").Subrouter()
 	userRouter.HandleFunc("/register", controller.Register).Methods("OPTIONS", "POST")
-	userRouter.HandleFunc("/login", controller.Login).Methods("POST")
+	userRouter.HandleFunc("/login", controller.Login).Methods("OPTIONS", "POST")
 	userRouter.Handle("/profile", utils.AuthMiddleware(http.HandlerFunc(controller.GetUserProfile))).Methods("GET")
 	userRouter.Handle("/logout", utils.AuthMiddleware(http.HandlerFunc(controller.Logout))).Methods("POST")
 
