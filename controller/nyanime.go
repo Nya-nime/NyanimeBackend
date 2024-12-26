@@ -2,6 +2,7 @@ package controller
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 	"strings"
 
@@ -10,6 +11,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"golang.org/x/crypto/bcrypt"
+	"gorm.io/gorm"
 )
 
 // Register handler
@@ -166,17 +168,12 @@ func Logout(w http.ResponseWriter, r *http.Request) {
 // GetAllAnime handler
 func GetAllAnime(w http.ResponseWriter, r *http.Request) {
 	var animes []models.Anime
-
 	if err := utils.DB.Find(&animes).Error; err != nil {
-		http.Error(w, "Failed to fetch anime", http.StatusInternalServerError)
+		http.Error(w, "Failed to retrieve anime", http.StatusInternalServerError)
 		return
 	}
 
-	if len(animes) == 0 {
-		w.WriteHeader(http.StatusNoContent) // 204 No Content jika tidak ada anime
-		return
-	}
-
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(animes)
 }
@@ -195,26 +192,32 @@ func CreateAnime(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Validasi data anime (misalnya, pastikan title tidak kosong)
+	// Validasi data anime
 	if anime.Title == "" {
 		http.Error(w, "Title is required", http.StatusBadRequest)
 		return
 	}
 
+	log.Printf("Creating anime: %+v", anime)
+
 	if err := utils.DB.Create(&anime).Error; err != nil {
+		log.Printf("Error creating anime: %v", err)
 		http.Error(w, "Failed to create anime", http.StatusInternalServerError)
 		return
 	}
 
-	w.Header().Set("Access-Control-Allow-Origin", "http://127.0.0.1:5500")
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(anime)
 }
 
 // UpdateAnime handler
 func EditAnime(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPut {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+	vars := mux.Vars(r) // Ambil variabel dari URL
+	id := vars["id"]    // Ambil ID dari URL
+
+	if id == "" {
+		http.Error(w, "ID is required", http.StatusBadRequest)
 		return
 	}
 
@@ -225,24 +228,30 @@ func EditAnime(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Validasi ID
-	if anime.ID == 0 {
-		http.Error(w, "ID is required", http.StatusBadRequest)
+	// Validasi data anime
+	if anime.Title == "" {
+		http.Error(w, "Title is required", http.StatusBadRequest)
 		return
 	}
 
-	if err := utils.DB.Model(&models.Anime{}).Where("id = ?", anime.ID).Updates(anime).Error; err != nil {
-		http.Error(w, "Failed to edit anime", http.StatusInternalServerError)
+	// Update anime di database
+	if err := utils.DB.Model(&anime).Where("id = ?", id).Updates(anime).Error; err != nil {
+		http.Error(w, "Failed to update anime", http.StatusInternalServerError)
 		return
 	}
 
-	w.Header().Set("Access-Control-Allow-Origin", "http://127.0.0.1:5500")
+	log.Printf("Editing anime with ID: %s", id)
+	log.Printf("Request body: %+v", anime)
+
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(anime)
 }
 
 // DeleteAnime handler
 func DeleteAnime(w http.ResponseWriter, r *http.Request) {
+	log.Println("DeleteAnime handler called") // Log untuk debugging
+
 	if r.Method != http.MethodDelete {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -252,12 +261,34 @@ func DeleteAnime(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id := vars["id"]
 
-	if err := utils.DB.Delete(&models.Anime{}, id).Error; err != nil {
+	log.Printf("Attempting to delete anime with ID: %s", id)
+
+	// Cek apakah anime dengan ID tersebut ada
+	var anime models.Anime
+	if err := utils.DB.First(&anime, id).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			http.Error(w, "Anime not found", http.StatusNotFound)
+			return
+		}
+		log.Printf("Error finding anime with ID %s: %v", id, err)
+		http.Error(w, "Failed to find anime", http.StatusInternalServerError)
+		return
+	}
+
+	// Hapus anime dari database
+	if err := utils.DB.Delete(&anime).Error; err != nil {
+		log.Printf("Error deleting anime with ID %s: %v", id, err)
 		http.Error(w, "Failed to delete anime", http.StatusInternalServerError)
 		return
 	}
 
-	w.Header().Set("Access-Control-Allow-Origin", "http://127.0.0.1:5500")
+	if utils.DB.RowsAffected == 0 {
+		log.Printf("No anime found with ID: %s", id)
+		http.Error(w, "Anime not found", http.StatusNotFound)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]string{"message": "Anime deleted successfully"})
 }
