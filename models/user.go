@@ -1,8 +1,6 @@
 package models
 
 import (
-	"time"
-
 	"gorm.io/gorm"
 )
 
@@ -30,12 +28,12 @@ type Favorite struct {
 }
 
 type Anime struct {
-	ID          uint      `json:"id" gorm:"primaryKey"`
-	Title       string    `json:"title" gorm:"not null"`
-	Description string    `json:"description"`
-	Genre       string    `json:"genre"`
-	ReleaseDate time.Time `json:"releaseDate"`
-	CreatedBy   uint      `json:"createdBy"`
+	ID          uint   `json:"id" gorm:"primaryKey"`
+	Title       string `json:"title" gorm:"not null"`
+	Description string `json:"description"`
+	Genre       string `json:"genre"`
+	ReleaseDate string `json:"releaseDate"`
+	CreatedBy   uint   `json:"createdBy"`
 }
 
 func GetUserByID(DB *gorm.DB, userID int) (User, error) {
