@@ -27,6 +27,11 @@ func AuthMiddleware(next http.Handler) http.Handler {
 
 		tokenString := strings.Replace(authHeader, "Bearer ", "", 1)
 
+		if IsBlacklisted(tokenString) {
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+
 		// Verifikasi token
 		token, claims, err := VerifyToken(tokenString)
 		if err != nil || !token.Valid {

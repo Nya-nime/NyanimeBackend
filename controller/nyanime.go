@@ -133,9 +133,9 @@ func Login(w http.ResponseWriter, r *http.Request) {
 }
 
 func Logout(w http.ResponseWriter, r *http.Request) {
-	// Menangani permintaan OPTIONS
+	// Handle OPTIONS request for CORS
 	if r.Method == http.MethodOptions {
-		w.Header().Set("Access-Control-Allow-Origin", "http://127.0.0.1:5500") // Ganti dengan URL frontend Anda
+		w.Header().Set("Access-Control-Allow-Origin", "http://127.0.0.1:5500") // Update with your frontend URL
 		w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 		w.WriteHeader(http.StatusOK)
@@ -147,20 +147,22 @@ func Logout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Ambil token dari header Authorization
+	// Get the token from the Authorization header
 	authHeader := r.Header.Get("Authorization")
 	if authHeader == "" {
 		http.Error(w, "Authorization header is required", http.StatusUnauthorized)
 		return
 	}
 
-	// Token biasanya dalam format "Bearer <token>"
+	// Token is usually in the format "Bearer <token>"
 	token := strings.TrimPrefix(authHeader, "Bearer ")
-	utils.AddToBlacklist(token)
-	// Tambahkan token ke blacklist atau logika lain di sini
 
-	// Kirim respons sukses
+	// Add the token to the blacklist
+	utils.AddToBlacklist(token)
+
+	// Send success response
 	w.Header().Set("Access-Control-Allow-Origin", "http://127.0.0.1:5500")
+	w.Header().Set("Content-Type", "text/plain") // Set content type
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("Logout successful"))
 }
