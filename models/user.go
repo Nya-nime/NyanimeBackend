@@ -1,6 +1,8 @@
 package models
 
 import (
+	"time"
+
 	"gorm.io/gorm"
 )
 
@@ -15,12 +17,18 @@ type User struct {
 }
 
 type Review struct {
-	ID         int     `json:"id" gorm:"primaryKey"`
-	AnimeTitle string  `json:"animeTitle"`
-	Rating     float64 `json:"rating"` // Ganti menjadi float64 jika diperlukan
-	Content    string  `json:"content"`
-	UserID     int     `json:"-" gorm:"constraint:OnDelete:CASCADE"` // Tidak dikembalikan dalam response JSON
+	ID        int       `json:"id" gorm:"primaryKey;autoIncrement"`
+	Rating    int64     `json:"rating" gorm:"type:bigint"`
+	Content   string    `json:"content" gorm:"type:longtext"`
+	CreatedAt time.Time `json:"created_at" gorm:"type:datetime(3);autoCreateTime"`
+	UserID    int       `json:"user_id" gorm:"column:user_id;not null"`   // Pastikan ini int
+	AnimeID   uint      `json:"anime_id" gorm:"column:anime_id;not null"` // Pastikan ini uint
 }
+
+func (Review) TableName() string {
+	return "reviews_new" // Menggunakan nama tabel yang sudah ada
+}
+
 type Favorite struct {
 	ID         int    `json:"id" gorm:"primaryKey"`
 	AnimeTitle string `json:"animeTitle"`

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"NYANIMEBACKEND/models"
@@ -311,73 +312,174 @@ func DeleteAnime(w http.ResponseWriter, r *http.Request) {
 }
 
 func AddReview(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodOptions {
+		w.Header().Set("Access-Control-Allow-Origin", "http://127.0.0.1:5500")
+		w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
-	userID := r.Context().Value("userID").(int) // Ambil userID dari konteks
+	vars := mux.Vars(r)
+	animeIDStr := vars["anime_id"]
+	animeID, err := strconv.Atoi(animeIDStr)
+	if err != nil {
+		http.Error(w, "Invalid anime ID", http.StatusBadRequest)
+		return
+	}
 
 	var review models.Review
-	err := json.NewDecoder(r.Body).Decode(&review)
+	err = json.NewDecoder(r.Body).Decode(&review)
 	if err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
-	review.UserID = userID // Set userID untuk review
-
-	if err := utils.DB.Create(&review).Error; err != nil {
-		http.Error(w, "Failed to add review", http.StatusInternalServerError)
+	// Cek apakah anime_id valid
+	var anime models.Anime
+	if err := utils.DB.First(&anime, animeID).Error; err != nil {
+		http.Error(w, "Anime not found", http.StatusBadRequest)
 		return
 	}
 
+	// Set userID dan animeID untuk review
+	userIDValue := r.Context().Value(utils.UserIDKey)
+	if userIDValue != nil {
+		review.UserID = int(userIDValue.(int))
+	} else {
+		http.Error(w, "User ID not found", http.StatusUnauthorized)
+		return
+	}
+
+	review.AnimeID = uint(animeID)
+
+	if err := utils.DB.Create(&review).Error; err != nil {
+		http.Error(w, "Failed to create review", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(review)
 }
 
 func EditReview(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodOptions {
+		w.Header().Set("Access-Control-Allow-Origin", "http://127.0.0.1:5500")
+		w.Header().Set("Access-Control-Allow-Methods", "PUT, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
 	if r.Method != http.MethodPut {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
+	vars := mux.Vars(r)
+	reviewIDStr := vars["review_id"]
+	reviewID, err := strconv.Atoi(reviewIDStr)
+	if err != nil {
+		http.Error(w, "Invalid review ID", http.StatusBadRequest)
+		return
+	}
+
 	var review models.Review
-	err := json.NewDecoder(r.Body).Decode(&review)
+	// Cek apakah review ada
+	if err := utils.DB.First(&review, reviewID).Error; err != nil {
+		http.Error(w, "Review not found", http.StatusNotFound)
+		return
+	}
+
+	// Decode body request ke dalam review
+	var updatedReview models.Review
+	err = json.NewDecoder(r.Body).Decode(&updatedReview)
 	if err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
+	// Update field yang ingin diubah
+	review.Content = updatedReview.Content
+	review.Rating = updatedReview.Rating
+
+	// Simpan perubahan ke database
 	if err := utils.DB.Save(&review).Error; err != nil {
 		http.Error(w, "Failed to update review", http.StatusInternalServerError)
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(review)
 }
 
+func LoadReviews(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodOptions {
+		w.Header().Set("Access-Control-Allow-Origin", "http://127.0.0.1:5500")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	vars := mux.Vars(r)
+	animeIDStr := vars["anime_id"]
+	animeID, err := strconv.Atoi(animeIDStr)
+	if err != nil {
+		http.Error(w, "Invalid anime ID", http.StatusBadRequest)
+		return
+	}
+
+	var reviews []models.Review
+	if err := utils.DB.Where("anime_id = ?", animeID).Find(&reviews).Error; err != nil {
+		http.Error(w, "Failed to load reviews", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(reviews)
+}
+
 func DeleteReview(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodOptions {
+		w.Header().Set("Access-Control-Allow-Origin", "http://127.0.0.1:5500")
+		w.Header().Set("Access-Control-Allow-Methods", "DELETE, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
 	if r.Method != http.MethodDelete {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
-	var review models.Review
-	err := json.NewDecoder(r.Body).Decode(&review)
+	vars := mux.Vars(r)
+	reviewIDStr := vars["review_id"]
+	reviewID, err := strconv.Atoi(reviewIDStr)
 	if err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		http.Error(w, "Invalid review ID", http.StatusBadRequest)
 		return
 	}
 
-	if err := utils.DB.Delete(&review).Error; err != nil {
+	// Hapus review
+	if err := utils.DB.Delete(&models.Review{}, reviewID).Error; err != nil {
 		http.Error(w, "Failed to delete review", http.StatusInternalServerError)
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]string{"message": "Review deleted successfully"})
+	w.WriteHeader(http.StatusNoContent) // 204 No Content
 }
 
 func GetUserProfile(w http.ResponseWriter, r *http.Request) {
