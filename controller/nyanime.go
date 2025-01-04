@@ -170,8 +170,23 @@ func Logout(w http.ResponseWriter, r *http.Request) {
 
 // GetAllAnime handler
 func GetAllAnime(w http.ResponseWriter, r *http.Request) {
+	// Cek metode OPTIONS untuk CORS
+	if r.Method == http.MethodOptions {
+		w.Header().Set("Access-Control-Allow-Origin", "http://127.0.0.1:5500")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
 	var animes []models.Anime
-	if err := utils.DB.Find(&animes).Error; err != nil {
+	// Query untuk mengambil anime dengan rating akumulatif dari tabel animes
+	if err := utils.DB.Table("animes"). // Ganti "anime" dengan "animes"
+						Select("animes.*, COALESCE(AVG(reviews_new.rating), 0) as average_rating"). // Ganti "reviews" dengan "reviews_new"
+						Joins("LEFT JOIN reviews_new ON animes.id = reviews_new.anime_id").         // Ganti "reviews" dengan "reviews_new"
+						Group("animes.id").                                                         // Ganti "anime" dengan "animes"
+						Scan(&animes).Error; err != nil {
+		log.Println("Error retrieving anime:", err) // Log error untuk debugging
 		http.Error(w, "Failed to retrieve anime", http.StatusInternalServerError)
 		return
 	}
@@ -361,6 +376,19 @@ func AddReview(w http.ResponseWriter, r *http.Request) {
 	if err := utils.DB.Create(&review).Error; err != nil {
 		http.Error(w, "Failed to create review", http.StatusInternalServerError)
 		return
+	}
+
+	var averageRating float64
+	if err := utils.DB.Table("reviews_new").
+		Select("COALESCE(AVG(rating), 0)").
+		Where("anime_id = ?", animeID).
+		Scan(&averageRating).Error; err != nil {
+		log.Println("Error calculating average rating:", err)
+	} else {
+		// Update average rating di tabel animes
+		if err := utils.DB.Model(&anime).Update("average_rating", averageRating).Error; err != nil {
+			log.Println("Error updating average rating:", err)
+		}
 	}
 
 	w.Header().Set("Content-Type", "application/json")

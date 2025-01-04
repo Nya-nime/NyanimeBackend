@@ -36,12 +36,13 @@ type Favorite struct {
 }
 
 type Anime struct {
-	ID          uint   `json:"id" gorm:"primaryKey"`
-	Title       string `json:"title" gorm:"not null"`
-	Description string `json:"description"`
-	Genre       string `json:"genre"`
-	ReleaseDate string `json:"releaseDate"`
-	CreatedBy   uint   `json:"createdBy"`
+	ID            uint    `json:"id" gorm:"primaryKey"`
+	Title         string  `json:"title" gorm:"not null"`
+	Description   string  `json:"description"`
+	Genre         string  `json:"genre"`
+	ReleaseDate   string  `json:"releaseDate"`
+	CreatedBy     uint    `json:"createdBy"`
+	AverageRating float64 `json:"average_rating"`
 }
 
 func GetUserByID(DB *gorm.DB, userID int) (User, error) {
