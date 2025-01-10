@@ -19,7 +19,7 @@ import (
 func Register(w http.ResponseWriter, r *http.Request) {
 	// Menangani permintaan OPTIONS
 	if r.Method == http.MethodOptions {
-		w.Header().Set("Access-Control-Allow-Origin", "http://127.0.0.1:5500") // Ganti dengan domain frontend Anda jika perlu
+		w.Header().Set("Access-Control-Allow-Origin", "http://127.0.0.1:5500")
 		w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
 		w.WriteHeader(http.StatusOK)
@@ -66,13 +66,13 @@ func Register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Kembalikan respons dengan informasi pengguna tanpa password
-	user.Password = ""                                                     // Hapus password dari objek user
-	w.Header().Set("Access-Control-Allow-Origin", "http://127.0.0.1:5500") // Ganti dengan domain frontend Anda jika perlu
+	user.Password = ""
+	w.Header().Set("Access-Control-Allow-Origin", "http://127.0.0.1:5500")
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"message": "User registered successfully",
-		"user":    user, // Mengembalikan informasi pengguna yang baru terdaftar tanpa password
+		"user":    user,
 	})
 }
 
@@ -510,8 +510,107 @@ func DeleteReview(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent) // 204 No Content
 }
 
+func AddFavorite(w http.ResponseWriter, r *http.Request) {
+	// Menangani preflight request untuk CORS
+	if r.Method == http.MethodOptions {
+		w.Header().Set("Access-Control-Allow-Origin", "http://127.0.0.1:5500")
+		w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
+	// Memastikan metode yang digunakan adalah POST
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Mengambil anime_id dari URL
+	vars := mux.Vars(r)
+	animeIDStr := vars["anime_id"]
+	animeID, err := strconv.Atoi(animeIDStr)
+	if err != nil {
+		http.Error(w, "Invalid anime ID", http.StatusBadRequest)
+		return
+	}
+
+	// Membaca body request untuk favorite
+	var favorite models.Favorite
+	if err := json.NewDecoder(r.Body).Decode(&favorite); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	// Cek apakah anime_id valid
+	var anime models.Anime
+	if err := utils.DB.First(&anime, animeID).Error; err != nil {
+		http.Error(w, "Anime not found", http.StatusNotFound)
+		return
+	}
+
+	// Set userID dan animeID untuk favorite
+	userIDValue := r.Context().Value(utils.UserIDKey)
+	if userIDValue != nil {
+		favorite.UserID = int(userIDValue.(int)) // Mengambil userID dari konteks
+	} else {
+		http.Error(w, "User ID not found", http.StatusUnauthorized)
+		return
+	}
+
+	favorite.AnimeID = uint64(animeID) // Pastikan AnimeID adalah uint64
+	favorite.AnimeTitle = anime.Title
+
+	// Simpan ke database
+	if err := utils.DB.Create(&favorite).Error; err != nil {
+		http.Error(w, "Failed to add favorite", http.StatusInternalServerError)
+		return
+	}
+
+	// Mengatur header dan mengembalikan respons
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(favorite)
+}
+
+func GetFavorites(w http.ResponseWriter, r *http.Request) {
+	userIDValue := r.Context().Value("userID")
+	if userIDValue == nil {
+		http.Error(w, "User ID not found", http.StatusUnauthorized)
+		return
+	}
+	userID := userIDValue.(uint)
+
+	var favorites []models.Favorite
+	if err := utils.DB.Where("user_id = ?", userID).Find(&favorites).Error; err != nil {
+		http.Error(w, "Failed to load favorites", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(favorites)
+}
+
+func RemoveFavorite(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	favoriteIDStr := vars["id"]
+	favoriteID, err := strconv.Atoi(favoriteIDStr)
+	if err != nil {
+		http.Error(w, "Invalid favorite ID", http.StatusBadRequest)
+		return
+	}
+
+	// Hapus favorit dari database
+	if err := utils.DB.Delete(&models.Favorite{}, favoriteID).Error; err != nil {
+		http.Error(w, "Failed to delete favorite", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent) // 204 No Content
+}
+
 func GetUserProfile(w http.ResponseWriter, r *http.Request) {
-	userID := r.Context().Value("userID").(int) // Ambil userID dari konteks
+	userID := r.Context().Value(utils.UserIDKey).(int) // Ambil userID dari konteks
 
 	var user models.User
 	if err := utils.DB.Preload("Reviews").First(&user, userID).Error; err != nil {

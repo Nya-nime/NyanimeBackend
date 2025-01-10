@@ -30,9 +30,15 @@ func (Review) TableName() string {
 }
 
 type Favorite struct {
-	ID         int    `json:"id" gorm:"primaryKey"`
-	AnimeTitle string `json:"animeTitle"`
-	UserID     int    `json:"-"`
+	ID         uint64    `json:"id" gorm:"primaryKey"` // ID favorit
+	AnimeID    uint64    `json:"anime_id"`             // ID anime yang difavoritkan
+	AnimeTitle string    `json:"animeTitle"`           // Judul anime
+	UserID     int       `json:"-"`                    // ID pengguna (tidak dikembalikan dalam respons)
+	CreatedAt  time.Time `json:"created_at"`           // Waktu pembuatan
+}
+
+func (Favorite) TableName() string {
+	return "favorite" // Menggunakan nama tabel yang sudah ada
 }
 
 type Anime struct {

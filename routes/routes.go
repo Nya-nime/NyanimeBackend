@@ -45,5 +45,10 @@ func SetupRoutes() *mux.Router {
 	reviewRouter.Handle("/{review_id}", utils.AuthMiddleware(http.HandlerFunc(controller.EditReview))).Methods("OPTIONS", "PUT")
 	reviewRouter.Handle("/{review_id}", utils.AuthMiddleware(http.HandlerFunc(controller.DeleteReview))).Methods("OPTIONS", "DELETE")
 
+	favoriteRouter := router.PathPrefix("/favorites").Subrouter()                                                        // Ganti "/favorite" menjadi "/favorites"
+	favoriteRouter.Handle("/{anime_id}", utils.AuthMiddleware(http.HandlerFunc(controller.AddFavorite))).Methods("POST") // Menambahkan favorit
+	favoriteRouter.Handle("/", utils.AuthMiddleware(http.HandlerFunc(controller.GetFavorites))).Methods("GET")           // Mengambil daftar favorit
+	favoriteRouter.Handle("/{id}", utils.AuthMiddleware(http.HandlerFunc(controller.RemoveFavorite))).Methods("DELETE")  // Menghapus favorit berdasarkan ID
+
 	return router
 }
