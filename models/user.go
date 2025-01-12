@@ -30,6 +30,7 @@ func (Review) TableName() string {
 }
 
 type ReviewWithAnime struct {
+	ID          int     `json:"id"`
 	AnimeID     int     `json:"anime_id"`
 	Content     string  `json:"content"`
 	Rating      float64 `json:"rating"`

@@ -449,7 +449,7 @@ func EditReview(w http.ResponseWriter, r *http.Request) {
 	}
 
 	vars := mux.Vars(r)
-	reviewIDStr := vars["review_id"]
+	reviewIDStr := vars["id"]
 	reviewID, err := strconv.Atoi(reviewIDStr)
 	if err != nil {
 		http.Error(w, "Invalid review ID", http.StatusBadRequest)
@@ -672,7 +672,7 @@ func GetUserReviews(w http.ResponseWriter, r *http.Request) {
 	var reviews []models.ReviewWithAnime // Gunakan struktur ReviewWithAnime
 
 	query := `  
-        SELECT r.anime_id, r.content, r.rating, a.title AS anime_title, a.genre, a.release_date  
+        SELECT r.id, r.anime_id, r.content, r.rating, a.title AS anime_title, a.genre, a.release_date  
         FROM reviews_new r  
         JOIN animes a ON r.anime_id = a.id  
         WHERE r.user_id = ?;  

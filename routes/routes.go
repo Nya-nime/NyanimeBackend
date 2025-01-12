@@ -40,9 +40,9 @@ func SetupRoutes() *mux.Router {
 
 	// Review Routes
 	reviewRouter := router.PathPrefix("/review").Subrouter()
+	reviewRouter.Handle("/reviews", utils.AuthMiddleware(http.HandlerFunc(controller.GetUserReviews))).Methods("GET", "OPTIONS")
 	reviewRouter.Handle("/anime/{anime_id}", utils.AuthMiddleware(http.HandlerFunc(controller.LoadReviews))).Methods("GET")
 	reviewRouter.Handle("/anime/{anime_id}/{user_id}", utils.AuthMiddleware(http.HandlerFunc(controller.CheckUserRating))).Methods("OPTIONS", "GET")
-	reviewRouter.Handle("/reviews", utils.AuthMiddleware(http.HandlerFunc(controller.GetUserReviews))).Methods("GET", "OPTIONS")
 	reviewRouter.Handle("/anime/{anime_id}", utils.AuthMiddleware(http.HandlerFunc(controller.AddReview))).Methods("OPTIONS", "POST")
 	reviewRouter.Handle("/{review_id}", utils.AuthMiddleware(http.HandlerFunc(controller.EditReview))).Methods("OPTIONS", "PUT")
 	reviewRouter.Handle("/{review_id}", utils.AuthMiddleware(http.HandlerFunc(controller.DeleteReview))).Methods("OPTIONS", "DELETE")
