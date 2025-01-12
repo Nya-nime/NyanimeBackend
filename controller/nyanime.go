@@ -2,6 +2,7 @@ package controller
 
 import (
 	"encoding/json"
+	"errors"
 	"log"
 	"net/http"
 	"strconv"
@@ -399,6 +400,40 @@ func AddReview(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(review)
 }
 
+func CheckUserRating(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	animeIDStr := vars["anime_id"]
+	userIDStr := vars["user_id"]
+
+	animeID, err := strconv.Atoi(animeIDStr)
+	if err != nil {
+		http.Error(w, "Invalid anime ID", http.StatusBadRequest)
+		return
+	}
+
+	userID, err := strconv.Atoi(userIDStr)
+	if err != nil {
+		http.Error(w, "Invalid user ID", http.StatusBadRequest)
+		return
+	}
+
+	var review models.Review
+	if err := utils.DB.Where("anime_id = ? AND user_id = ?", animeID, userID).First(&review).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			// Rating tidak ditemukan, kembalikan status 200 dengan payload kosong
+			w.WriteHeader(http.StatusOK)
+			json.NewEncoder(w).Encode(nil) // Kembalikan null atau objek kosong
+			return
+		}
+		http.Error(w, "Failed to check rating", http.StatusInternalServerError)
+		return
+	}
+
+	// Rating ditemukan, kembalikan data rating
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(review)
+}
+
 func EditReview(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodOptions {
 		w.Header().Set("Access-Control-Allow-Origin", "http://127.0.0.1:5500")
@@ -613,6 +648,11 @@ func RemoveFavorite(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetUserProfile(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodOptions {
+		log.Println("Received OPTIONS request for user profile")
+		w.WriteHeader(http.StatusOK)
+		return
+	}
 	userID := r.Context().Value(utils.UserIDKey).(int) // Ambil userID dari konteks
 
 	var user models.User
@@ -623,4 +663,27 @@ func GetUserProfile(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(user)
+}
+
+// GetUserReviews retrieves the reviews made by the user
+func GetUserReviews(w http.ResponseWriter, r *http.Request) {
+	userID := r.Context().Value(utils.UserIDKey).(int) // Ambil userID dari konteks
+
+	var reviews []models.ReviewWithAnime // Gunakan struktur ReviewWithAnime
+
+	query := `  
+        SELECT r.anime_id, r.content, r.rating, a.title AS anime_title, a.genre, a.release_date  
+        FROM reviews_new r  
+        JOIN animes a ON r.anime_id = a.id  
+        WHERE r.user_id = ?;  
+    `
+
+	if err := utils.DB.Raw(query, userID).Scan(&reviews).Error; err != nil {
+		http.Error(w, "No reviews found", http.StatusNotFound)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(reviews)
 }

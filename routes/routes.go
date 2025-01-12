@@ -22,13 +22,13 @@ func SetupRoutes() *mux.Router {
 	// Redirect root to the frontend
 	router.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "http://127.0.0.1:5500", http.StatusFound)
-	}).Methods("GET")
+	}).Methods("GET", "OPTIONS")
 
 	// User Routes
 	userRouter := router.PathPrefix("/user").Subrouter()
 	userRouter.HandleFunc("/register", controller.Register).Methods("OPTIONS", "POST")
 	userRouter.HandleFunc("/login", controller.Login).Methods("OPTIONS", "POST")
-	userRouter.Handle("/profile", utils.AuthMiddleware(http.HandlerFunc(controller.GetUserProfile))).Methods("GET")
+	userRouter.Handle("/profile", utils.AuthMiddleware(http.HandlerFunc(controller.GetUserProfile))).Methods("GET", "OPTIONS")
 	userRouter.Handle("/logout", utils.AuthMiddleware(http.HandlerFunc(controller.Logout))).Methods("OPTIONS", "POST")
 
 	// Anime Routes (Admin Privileges)
@@ -41,6 +41,8 @@ func SetupRoutes() *mux.Router {
 	// Review Routes
 	reviewRouter := router.PathPrefix("/review").Subrouter()
 	reviewRouter.Handle("/anime/{anime_id}", utils.AuthMiddleware(http.HandlerFunc(controller.LoadReviews))).Methods("GET")
+	reviewRouter.Handle("/anime/{anime_id}/{user_id}", utils.AuthMiddleware(http.HandlerFunc(controller.CheckUserRating))).Methods("OPTIONS", "GET")
+	reviewRouter.Handle("/reviews", utils.AuthMiddleware(http.HandlerFunc(controller.GetUserReviews))).Methods("GET", "OPTIONS")
 	reviewRouter.Handle("/anime/{anime_id}", utils.AuthMiddleware(http.HandlerFunc(controller.AddReview))).Methods("OPTIONS", "POST")
 	reviewRouter.Handle("/{review_id}", utils.AuthMiddleware(http.HandlerFunc(controller.EditReview))).Methods("OPTIONS", "PUT")
 	reviewRouter.Handle("/{review_id}", utils.AuthMiddleware(http.HandlerFunc(controller.DeleteReview))).Methods("OPTIONS", "DELETE")

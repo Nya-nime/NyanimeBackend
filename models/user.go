@@ -29,6 +29,15 @@ func (Review) TableName() string {
 	return "reviews_new" // Menggunakan nama tabel yang sudah ada
 }
 
+type ReviewWithAnime struct {
+	AnimeID     int     `json:"anime_id"`
+	Content     string  `json:"content"`
+	Rating      float64 `json:"rating"`
+	AnimeTitle  string  `json:"anime_title"`
+	Genre       string  `json:"genre"`
+	ReleaseDate string  `json:"release_date"`
+}
+
 type Favorite struct {
 	ID         uint64    `json:"id" gorm:"primaryKey"` // ID favorit
 	AnimeID    uint64    `json:"anime_id"`             // ID anime yang difavoritkan
