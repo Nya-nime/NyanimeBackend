@@ -38,9 +38,9 @@ func Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Validasi input
-	if user.Username == "" || user.Email == "" || user.Password == "" || user.Role == "" {
-		http.Error(w, "Username, email, password, and role are required", http.StatusBadRequest)
+	// Validasi input tanpa role
+	if user.Username == "" || user.Email == "" || user.Password == "" {
+		http.Error(w, "Username, email, and password are required", http.StatusBadRequest)
 		return
 	}
 
@@ -58,6 +58,9 @@ func Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	user.Password = string(hashedPassword)
+
+	// Set role default jika diperlukan (misalnya, "user")
+	user.Role = "user" // Atur role default jika Anda ingin semua pengguna terdaftar sebagai user
 
 	// Save to database
 	if err := utils.DB.Create(&user).Error; err != nil {
