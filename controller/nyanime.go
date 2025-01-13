@@ -661,12 +661,22 @@ func GetFavorites(w http.ResponseWriter, r *http.Request) {
 	}
 	userID := int(userIDValue.(int))
 
-	// Mengambil daftar favorit dari database
-	var favorites []models.Favorite
-	if err := utils.DB.Where("user_id = ?", userID).Find(&favorites).Error; err != nil {
+	// Mengambil daftar favorit dari database dengan join
+	var favorites []models.FavoriteWithAnime
+	query := `      
+		SELECT f.id, f.anime_id, a.title AS anime_title, a.genre, a.description, a.average_rating AS rating, a.release_date      
+		FROM favorite f      
+		JOIN animes a ON f.anime_id = a.id      
+		WHERE f.user_id = ?;      
+	`
+
+	if err := utils.DB.Raw(query, userID).Scan(&favorites).Error; err != nil {
 		http.Error(w, "Failed to fetch favorites", http.StatusInternalServerError)
 		return
 	}
+
+	// Log data yang diambil
+	log.Printf("Favorites: %+v", favorites)
 
 	// Mengatur header dan mengembalikan respons
 	w.Header().Set("Content-Type", "application/json")

@@ -47,6 +47,17 @@ type Favorite struct {
 	CreatedAt  time.Time `json:"created_at"`           // Waktu pembuatan
 }
 
+type FavoriteWithAnime struct {
+	ID          uint64    `json:"id"`       // ID favorit
+	AnimeID     uint64    `json:"anime_id"` // ID anime yang difavoritkan
+	AnimeTitle  string    `json:"anime_title"`
+	Genre       string    `json:"genre"`        // Judul anime
+	Description string    `json:"description"`  // Deskripsi anime
+	Rating      float64   `json:"rating"`       // Rating anime
+	ReleaseDate string    `json:"release_date"` // Tanggal rilis anime
+	CreatedAt   time.Time `json:"created_at"`   // Waktu pembuatan
+}
+
 func (Favorite) TableName() string {
 	return "favorite" // Menggunakan nama tabel yang sudah ada
 }
