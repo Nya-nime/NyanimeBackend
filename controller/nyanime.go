@@ -137,6 +137,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// Logout handeler
 func Logout(w http.ResponseWriter, r *http.Request) {
 	// Handle OPTIONS request for CORS
 	if r.Method == http.MethodOptions {
@@ -330,6 +331,7 @@ func DeleteAnime(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]string{"message": "Anime deleted successfully"})
 }
 
+// AddReview handler
 func AddReview(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodOptions {
 		w.Header().Set("Access-Control-Allow-Origin", "http://127.0.0.1:5500")
@@ -400,6 +402,7 @@ func AddReview(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(review)
 }
 
+// CheckUserRating handler
 func CheckUserRating(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	animeIDStr := vars["anime_id"]
@@ -434,6 +437,7 @@ func CheckUserRating(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(review)
 }
 
+// EditReview handler
 func EditReview(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodOptions {
 		w.Header().Set("Access-Control-Allow-Origin", "http://127.0.0.1:5500")
@@ -503,6 +507,7 @@ func EditReview(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(review)
 }
 
+// LoadReviews handler
 func LoadReviews(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodOptions {
 		w.Header().Set("Access-Control-Allow-Origin", "http://127.0.0.1:5500")
@@ -535,6 +540,7 @@ func LoadReviews(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(reviews)
 }
 
+// DeleteReview handler
 func DeleteReview(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodOptions {
 		w.Header().Set("Access-Control-Allow-Origin", "http://127.0.0.1:5500")
@@ -566,6 +572,7 @@ func DeleteReview(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent) // 204 No Content
 }
 
+// AddFavorite handler
 func AddFavorite(w http.ResponseWriter, r *http.Request) {
 	// Menangani preflight request untuk CORS
 	if r.Method == http.MethodOptions {
@@ -629,25 +636,62 @@ func AddFavorite(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(favorite)
 }
 
+// GetFavorites handler
 func GetFavorites(w http.ResponseWriter, r *http.Request) {
-	userIDValue := r.Context().Value("userID")
+	// Menangani preflight request untuk CORS
+	if r.Method == http.MethodOptions {
+		w.Header().Set("Access-Control-Allow-Origin", "http://127.0.0.1:5500")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Authorization")
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
+	// Memastikan metode yang digunakan adalah GET
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Mengambil userID dari konteks
+	userIDValue := r.Context().Value(utils.UserIDKey)
 	if userIDValue == nil {
 		http.Error(w, "User ID not found", http.StatusUnauthorized)
 		return
 	}
-	userID := userIDValue.(uint)
+	userID := int(userIDValue.(int))
 
+	// Mengambil daftar favorit dari database
 	var favorites []models.Favorite
 	if err := utils.DB.Where("user_id = ?", userID).Find(&favorites).Error; err != nil {
-		http.Error(w, "Failed to load favorites", http.StatusInternalServerError)
+		http.Error(w, "Failed to fetch favorites", http.StatusInternalServerError)
 		return
 	}
 
+	// Mengatur header dan mengembalikan respons
 	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(favorites)
 }
 
-func RemoveFavorite(w http.ResponseWriter, r *http.Request) {
+// DeleteFavorite handler
+func DeleteFavorite(w http.ResponseWriter, r *http.Request) {
+	// Menangani preflight request untuk CORS
+	if r.Method == http.MethodOptions {
+		w.Header().Set("Access-Control-Allow-Origin", "http://127.0.0.1:5500")
+		w.Header().Set("Access-Control-Allow-Methods", "DELETE, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Authorization")
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
+	// Memastikan metode yang digunakan adalah DELETE
+	if r.Method != http.MethodDelete {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Mengambil anime_id dari URL
 	vars := mux.Vars(r)
 	favoriteIDStr := vars["id"]
 	favoriteID, err := strconv.Atoi(favoriteIDStr)
@@ -656,15 +700,25 @@ func RemoveFavorite(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Hapus favorit dari database
-	if err := utils.DB.Delete(&models.Favorite{}, favoriteID).Error; err != nil {
+	// Mengambil userID dari konteks
+	userIDValue := r.Context().Value(utils.UserIDKey)
+	if userIDValue == nil {
+		http.Error(w, "User ID not found", http.StatusUnauthorized)
+		return
+	}
+	userID := int(userIDValue.(int))
+
+	// Menghapus favorite dari database
+	if err := utils.DB.Where("id = ? AND user_id = ?", favoriteID, userID).Delete(&models.Favorite{}).Error; err != nil {
 		http.Error(w, "Failed to delete favorite", http.StatusInternalServerError)
 		return
 	}
 
+	// Mengatur header dan mengembalikan respons
 	w.WriteHeader(http.StatusNoContent) // 204 No Content
 }
 
+// GetUserProfile data
 func GetUserProfile(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodOptions {
 		log.Println("Received OPTIONS request for user profile")
@@ -683,7 +737,7 @@ func GetUserProfile(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(user)
 }
 
-// GetUserReviews retrieves the reviews made by the user
+// GetReviews made by user
 func GetUserReviews(w http.ResponseWriter, r *http.Request) {
 	userID := r.Context().Value(utils.UserIDKey).(int) // Ambil userID dari konteks
 

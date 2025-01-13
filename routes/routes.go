@@ -33,10 +33,10 @@ func SetupRoutes() *mux.Router {
 
 	// Anime Routes (Admin Privileges)
 	animeRouter := router.PathPrefix("/anime").Subrouter()
-	animeRouter.HandleFunc("/", controller.GetAllAnime).Methods("GET", "OPTIONS")                                                                   // Semua user bisa lihat
-	animeRouter.Handle("/", utils.AuthMiddleware(utils.AdminMiddleware(http.HandlerFunc(controller.CreateAnime)))).Methods("OPTIONS", "POST")       // Menambahkan anime
-	animeRouter.Handle("/{id}", utils.AuthMiddleware(utils.AdminMiddleware(http.HandlerFunc(controller.EditAnime)))).Methods("OPTIONS", "PUT")      // Mengedit anime
-	animeRouter.Handle("/{id}", utils.AuthMiddleware(utils.AdminMiddleware(http.HandlerFunc(controller.DeleteAnime)))).Methods("OPTIONS", "DELETE") // Menghapus anime
+	animeRouter.HandleFunc("/", controller.GetAllAnime).Methods("GET", "OPTIONS")
+	animeRouter.Handle("/", utils.AuthMiddleware(utils.AdminMiddleware(http.HandlerFunc(controller.CreateAnime)))).Methods("OPTIONS", "POST")
+	animeRouter.Handle("/{id}", utils.AuthMiddleware(utils.AdminMiddleware(http.HandlerFunc(controller.EditAnime)))).Methods("OPTIONS", "PUT")
+	animeRouter.Handle("/{id}", utils.AuthMiddleware(utils.AdminMiddleware(http.HandlerFunc(controller.DeleteAnime)))).Methods("OPTIONS", "DELETE")
 
 	// Review Routes
 	reviewRouter := router.PathPrefix("/review").Subrouter()
@@ -47,10 +47,11 @@ func SetupRoutes() *mux.Router {
 	reviewRouter.Handle("/{review_id}", utils.AuthMiddleware(http.HandlerFunc(controller.EditReview))).Methods("OPTIONS", "PUT")
 	reviewRouter.Handle("/{review_id}", utils.AuthMiddleware(http.HandlerFunc(controller.DeleteReview))).Methods("OPTIONS", "DELETE")
 
-	favoriteRouter := router.PathPrefix("/favorites").Subrouter()                                                        // Ganti "/favorite" menjadi "/favorites"
-	favoriteRouter.Handle("/{anime_id}", utils.AuthMiddleware(http.HandlerFunc(controller.AddFavorite))).Methods("POST") // Menambahkan favorit
-	favoriteRouter.Handle("/", utils.AuthMiddleware(http.HandlerFunc(controller.GetFavorites))).Methods("GET")           // Mengambil daftar favorit
-	favoriteRouter.Handle("/{id}", utils.AuthMiddleware(http.HandlerFunc(controller.RemoveFavorite))).Methods("DELETE")  // Menghapus favorit berdasarkan ID
+	// Favorite Routes
+	favoriteRouter := router.PathPrefix("/favorites").Subrouter()
+	favoriteRouter.Handle("/{anime_id}", utils.AuthMiddleware(http.HandlerFunc(controller.AddFavorite))).Methods("POST", "OPTIONS")
+	favoriteRouter.Handle("/", utils.AuthMiddleware(http.HandlerFunc(controller.GetFavorites))).Methods("GET", "OPTIONS")
+	favoriteRouter.Handle("/{id}", utils.AuthMiddleware(http.HandlerFunc(controller.DeleteFavorite))).Methods("DELETE", "OPTIONS")
 
 	return router
 }
