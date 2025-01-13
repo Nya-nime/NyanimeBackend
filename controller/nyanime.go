@@ -443,31 +443,42 @@ func EditReview(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if r.Method != http.MethodPut {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+	vars := mux.Vars(r)              // Ambil variabel dari URL
+	reviewIDStr := vars["review_id"] // Ambil ID dari URL
+
+	if reviewIDStr == "" {
+		http.Error(w, `{"error": "ID is required"}`, http.StatusBadRequest)
 		return
 	}
 
-	vars := mux.Vars(r)
-	reviewIDStr := vars["id"]
 	reviewID, err := strconv.Atoi(reviewIDStr)
 	if err != nil {
-		http.Error(w, "Invalid review ID", http.StatusBadRequest)
+		http.Error(w, `{"error": "Invalid review ID"}`, http.StatusBadRequest)
 		return
 	}
 
 	var review models.Review
 	// Cek apakah review ada
 	if err := utils.DB.First(&review, reviewID).Error; err != nil {
-		http.Error(w, "Review not found", http.StatusNotFound)
+		http.Error(w, `{"error": "Review not found"}`, http.StatusNotFound)
 		return
 	}
 
-	// Decode body request ke dalam review
+	// Decode body request ke dalam updatedReview
 	var updatedReview models.Review
 	err = json.NewDecoder(r.Body).Decode(&updatedReview)
 	if err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		http.Error(w, `{"error": "Invalid request body"}`, http.StatusBadRequest)
+		return
+	}
+
+	// Validasi data review
+	if updatedReview.Content == "" {
+		http.Error(w, `{"error": "Content is required"}`, http.StatusBadRequest)
+		return
+	}
+	if updatedReview.Rating < 1 || updatedReview.Rating > 5 {
+		http.Error(w, `{"error": "Rating must be between 1 and 5"}`, http.StatusBadRequest)
 		return
 	}
 
@@ -477,11 +488,18 @@ func EditReview(w http.ResponseWriter, r *http.Request) {
 
 	// Simpan perubahan ke database
 	if err := utils.DB.Save(&review).Error; err != nil {
-		http.Error(w, "Failed to update review", http.StatusInternalServerError)
+		http.Error(w, `{"error": "Failed to update review"}`, http.StatusInternalServerError)
 		return
 	}
 
+	// Logging
+	log.Printf("Editing review with ID: %d", reviewID)
+	log.Printf("Updated review data: %+v", review)
+
+	// Set header CORS untuk respons
+	w.Header().Set("Access-Control-Allow-Origin", "http://127.0.0.1:5500")
 	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(review)
 }
 
