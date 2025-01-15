@@ -12,6 +12,7 @@ type User struct {
 	Email     string     `json:"email" gorm:"unique;not null"`
 	Password  string     `json:"password" gorm:"not null"`
 	Role      string     `json:"role" gorm:"not null"`
+	Bio       string     `json:"bio"`
 	Reviews   []Review   `json:"reviews" gorm:"foreignKey:UserID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
 	Favorites []Favorite `json:"favorites" gorm:"foreignKey:UserID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
 }

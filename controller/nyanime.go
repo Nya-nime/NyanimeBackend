@@ -769,3 +769,38 @@ func GetUserReviews(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(reviews)
 }
+
+func EditUserProfile(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPut {
+		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
+		return
+	}
+
+	userID := r.Context().Value(utils.UserIDKey).(int) // Get userID from context
+
+	var updatedUser models.User
+	if err := json.NewDecoder(r.Body).Decode(&updatedUser); err != nil {
+		http.Error(w, "Invalid request payload", http.StatusBadRequest)
+		return
+	}
+
+	// Find the user by ID
+	var user models.User
+	if err := utils.DB.First(&user, userID).Error; err != nil {
+		http.Error(w, "User not found", http.StatusNotFound)
+		return
+	}
+
+	// Update fields
+	user.Username = updatedUser.Username
+	user.Bio = updatedUser.Bio
+
+	// Save the updated user
+	if err := utils.DB.Save(&user).Error; err != nil {
+		http.Error(w, "Failed to update user profile", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(user)
+}

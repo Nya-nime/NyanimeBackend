@@ -30,6 +30,7 @@ func SetupRoutes() *mux.Router {
 	userRouter.HandleFunc("/login", controller.Login).Methods("OPTIONS", "POST")
 	userRouter.Handle("/profile", utils.AuthMiddleware(http.HandlerFunc(controller.GetUserProfile))).Methods("GET", "OPTIONS")
 	userRouter.Handle("/logout", utils.AuthMiddleware(http.HandlerFunc(controller.Logout))).Methods("OPTIONS", "POST")
+	userRouter.Handle("/edit", utils.AuthMiddleware(http.HandlerFunc(controller.EditUserProfile))).Methods("OPTIONS", "PUT")
 
 	// Anime Routes (Admin Privileges)
 	animeRouter := router.PathPrefix("/anime").Subrouter()
