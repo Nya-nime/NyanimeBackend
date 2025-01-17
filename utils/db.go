@@ -15,7 +15,7 @@ var DB *gorm.DB
 
 func InitDB() {
 	// Memuat file .env
-	err := godotenv.Load()
+	err := godotenv.Load(".env")
 	if err != nil {
 		log.Fatal("Error loading .env file")
 	}
@@ -55,6 +55,13 @@ func InitDB() {
 
 	// Opsional: Auto-migrate model
 	autoMigrateModels()
+}
+
+func loadEnv(file string) {
+	err := godotenv.Load(file)
+	if err != nil {
+		log.Fatalf("Error loading %s file: %v", file, err)
+	}
 }
 
 func autoMigrateModels() {

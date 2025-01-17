@@ -18,12 +18,16 @@ import (
 
 // Register handler
 func Register(w http.ResponseWriter, r *http.Request) {
-	// Menangani permintaan OPTIONS
 	if r.Method == http.MethodOptions {
 		w.Header().Set("Access-Control-Allow-Origin", "http://127.0.0.1:5500")
 		w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
 		w.WriteHeader(http.StatusOK)
+		return
+	}
+
+	if utils.DB == nil {
+		http.Error(w, "Database not initialized", http.StatusInternalServerError)
 		return
 	}
 
@@ -39,37 +43,37 @@ func Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Validasi input tanpa role
+	log.Printf("User input: %+v\n", user)
+
 	if user.Username == "" || user.Email == "" || user.Password == "" {
 		http.Error(w, "Username, email, and password are required", http.StatusBadRequest)
 		return
 	}
 
-	// Cek duplikasi email
 	var existingUser models.User
-	if err := utils.DB.Where("email = ?", user.Email).First(&existingUser).Error; err == nil {
+	if err := utils.DB.Where("email = ?", user.Email).First(&existingUser).Error; err != nil {
+		if err != gorm.ErrRecordNotFound {
+			http.Error(w, "Database error", http.StatusInternalServerError)
+			return
+		}
+	} else {
 		http.Error(w, "Email already registered", http.StatusConflict)
 		return
 	}
 
-	// Hash password
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
 	if err != nil {
 		http.Error(w, "Failed to hash password", http.StatusInternalServerError)
 		return
 	}
 	user.Password = string(hashedPassword)
+	user.Role = "user"
 
-	// Set role default jika diperlukan (misalnya, "user")
-	user.Role = "user" // Atur role default jika Anda ingin semua pengguna terdaftar sebagai user
-
-	// Save to database
 	if err := utils.DB.Create(&user).Error; err != nil {
 		http.Error(w, "Failed to register user", http.StatusInternalServerError)
 		return
 	}
 
-	// Kembalikan respons dengan informasi pengguna tanpa password
 	user.Password = ""
 	w.Header().Set("Access-Control-Allow-Origin", "http://127.0.0.1:5500")
 	w.Header().Set("Content-Type", "application/json")
