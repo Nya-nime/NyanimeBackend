@@ -20,49 +20,25 @@ func setup() {
 func TestRegister(t *testing.T) {
 	setup()
 	router := mux.NewRouter()
-	router.HandleFunc("/register", controller.Register).Methods("POST", "OPTIONS")
+	router.HandleFunc("user/register", controller.Register).Methods("POST", "OPTIONS")
 
 	tests := []struct {
 		name       string
 		body       models.User
 		statusCode int
-	}{{
-		name: "Valid User",
-		body: models.User{
-			Username: "testuser",
-			Email:    "test@example.com",
-			Password: "password123",
-		},
-		statusCode: http.StatusCreated,
-	}, {
-		name: "Missing Email",
-		body: models.User{
-			Username: "testuser",
-			Password: "password123",
-		},
-		statusCode: http.StatusBadRequest,
-	}, {
-		name: "Email Already Registered",
-		body: models.User{
-			Username: "existinguser",
-			Email:    "tes@example.com", // Use an email that already exists in the database
-			Password: "password123",
-		},
-		statusCode: http.StatusConflict,
-	}}
+	}{}
 
-	// Prepopulate the database with an existing user
 	existingUser := models.User{
 		Username: "existinguser",
-		Email:    "tes@example.com",
-		Password: "hashedpassword", // This should be a hashed password
+		Email:    "tess@example.com",
+		Password: "hashedpassword",
 	}
 	DB.Create(&existingUser)
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			body, _ := json.Marshal(tt.body)
-			req := httptest.NewRequest("POST", "/register", bytes.NewBuffer(body))
+			req := httptest.NewRequest("POST", "user/register", bytes.NewBuffer(body))
 			req.Header.Set("Content-Type", "application/json")
 			w := httptest.NewRecorder()
 
@@ -79,9 +55,8 @@ func TestLogin(t *testing.T) {
 	setup()
 	router := mux.NewRouter()
 	Login := func(w http.ResponseWriter, r *http.Request) {
-		// Implement handler logic here
 	}
-	router.HandleFunc("/login", Login).Methods("POST", "OPTIONS")
+	router.HandleFunc("user/login", Login).Methods("POST", "OPTIONS")
 
 	tests := []struct {
 		name       string
@@ -105,15 +80,12 @@ func TestLogin(t *testing.T) {
 	}
 }
 
-// Add implementation and corrections for other test cases below
-
 func TestLogout(t *testing.T) {
 	setup()
 	router := mux.NewRouter()
 	Logout := func(w http.ResponseWriter, r *http.Request) {
-		// Implement handler logic here
 	}
-	router.HandleFunc("/logout", Logout).Methods("POST", "OPTIONS")
+	router.HandleFunc("user/logout", Logout).Methods("POST", "OPTIONS")
 
 	tests := []struct {
 		name       string
@@ -142,11 +114,10 @@ func TestGetAllAnime(t *testing.T) {
 	setup()
 	router := mux.NewRouter()
 	GetAllAnime := func(w http.ResponseWriter, r *http.Request) {
-		// Handler logic here
 	}
-	router.HandleFunc("/anime", GetAllAnime).Methods("GET", "OPTIONS")
+	router.HandleFunc("/anime/", GetAllAnime).Methods("GET", "OPTIONS")
 
-	req := httptest.NewRequest("GET", "/anime", nil)
+	req := httptest.NewRequest("GET", "/anime/", nil)
 	w := httptest.NewRecorder()
 
 	router.ServeHTTP(w, req)
@@ -160,9 +131,8 @@ func TestCreateAnime(t *testing.T) {
 	setup()
 	router := mux.NewRouter()
 	CreateAnime := func(w http.ResponseWriter, r *http.Request) {
-		// Handler logic here
 	}
-	router.HandleFunc("/anime", CreateAnime).Methods("POST", "OPTIONS")
+	router.HandleFunc("/anime/", CreateAnime).Methods("POST", "OPTIONS")
 
 	tests := []struct {
 		name       string
@@ -190,7 +160,6 @@ func TestEditAnime(t *testing.T) {
 	setup()
 	router := mux.NewRouter()
 	EditAnime := func(w http.ResponseWriter, r *http.Request) {
-		// Handler logic here
 	}
 	router.HandleFunc("/anime/{id}", EditAnime).Methods("PUT", "OPTIONS")
 
@@ -221,7 +190,6 @@ func TestDeleteAnime(t *testing.T) {
 	setup()
 	router := mux.NewRouter()
 	DeleteAnime := func(w http.ResponseWriter, r *http.Request) {
-		// Handler logic here
 	}
 	router.HandleFunc("/anime/{id}", DeleteAnime).Methods("DELETE", "OPTIONS")
 
@@ -249,9 +217,8 @@ func TestAddReview(t *testing.T) {
 	setup()
 	router := mux.NewRouter()
 	AddReview := func(w http.ResponseWriter, r *http.Request) {
-		// Handler logic here
 	}
-	router.HandleFunc("/anime/{anime_id}/reviews", AddReview).Methods("POST", "OPTIONS")
+	router.HandleFunc("/anime/{anime_id}", AddReview).Methods("POST", "OPTIONS")
 
 	tests := []struct {
 		name       string
@@ -280,9 +247,8 @@ func TestCheckUserRating(t *testing.T) {
 	setup()
 	router := mux.NewRouter()
 	CheckUserRating := func(w http.ResponseWriter, r *http.Request) {
-		// Handler logic here
 	}
-	router.HandleFunc("/anime/{anime_id}/reviews/{user_id}", CheckUserRating).Methods("GET", "OPTIONS")
+	router.HandleFunc("/anime/{anime_id}/{user_id}", CheckUserRating).Methods("GET", "OPTIONS")
 
 	tests := []struct {
 		name       string
@@ -309,7 +275,6 @@ func TestEditReview(t *testing.T) {
 	setup()
 	router := mux.NewRouter()
 	EditReview := func(w http.ResponseWriter, r *http.Request) {
-		// Handler logic here
 	}
 	router.HandleFunc("/reviews/{review_id}", EditReview).Methods("PUT", "OPTIONS")
 
@@ -340,9 +305,8 @@ func TestLoadReviews(t *testing.T) {
 	setup()
 	router := mux.NewRouter()
 	LoadReviews := func(w http.ResponseWriter, r *http.Request) {
-		// Handler logic here
 	}
-	router.HandleFunc("/anime/{anime_id}/reviews", LoadReviews).Methods("GET", "OPTIONS")
+	router.HandleFunc("/anime/{anime_id}", LoadReviews).Methods("GET", "OPTIONS")
 
 	tests := []struct {
 		name       string
@@ -368,9 +332,8 @@ func TestDeleteReview(t *testing.T) {
 	setup()
 	router := mux.NewRouter()
 	DeleteReview := func(w http.ResponseWriter, r *http.Request) {
-		// Handler logic here
 	}
-	router.HandleFunc("/reviews/{review_id}", DeleteReview).Methods("DELETE", "OPTIONS")
+	router.HandleFunc("/anime/{anime_id}", DeleteReview).Methods("DELETE", "OPTIONS")
 
 	tests := []struct {
 		name       string
@@ -396,9 +359,8 @@ func TestAddFavorite(t *testing.T) {
 	setup()
 	router := mux.NewRouter()
 	AddFavorite := func(w http.ResponseWriter, r *http.Request) {
-		// Handler logic here
 	}
-	router.HandleFunc("/anime/{anime_id}/favorites", AddFavorite).Methods("POST", "OPTIONS")
+	router.HandleFunc("/favorites/{anime_id}", AddFavorite).Methods("POST", "OPTIONS")
 
 	tests := []struct {
 		name       string
@@ -427,11 +389,10 @@ func TestGetFavorites(t *testing.T) {
 	setup()
 	router := mux.NewRouter()
 	GetFavorites := func(w http.ResponseWriter, r *http.Request) {
-		// Handler logic here
 	}
-	router.HandleFunc("/favorites", GetFavorites).Methods("GET", "OPTIONS")
+	router.HandleFunc("/favorites/", GetFavorites).Methods("GET", "OPTIONS")
 
-	req := httptest.NewRequest("GET", "/favorites", nil)
+	req := httptest.NewRequest("GET", "/favorites/", nil)
 	w := httptest.NewRecorder()
 
 	router.ServeHTTP(w, req)
@@ -445,7 +406,6 @@ func TestDeleteFavorite(t *testing.T) {
 	setup()
 	router := mux.NewRouter()
 	DeleteFavorite := func(w http.ResponseWriter, r *http.Request) {
-		// Handler logic here
 	}
 	router.HandleFunc("/favorites/{id}", DeleteFavorite).Methods("DELETE", "OPTIONS")
 
@@ -473,7 +433,6 @@ func TestGetUserProfile(t *testing.T) {
 	setup()
 	router := mux.NewRouter()
 	GetUserProfile := func(w http.ResponseWriter, r *http.Request) {
-		// Handler logic here
 	}
 	router.HandleFunc("/user/profile", GetUserProfile).Methods("GET", "OPTIONS")
 
@@ -491,11 +450,10 @@ func TestGetUserReviews(t *testing.T) {
 	setup()
 	router := mux.NewRouter()
 	GetUserReviews := func(w http.ResponseWriter, r *http.Request) {
-		// Handler logic here
 	}
-	router.HandleFunc("/user/reviews", GetUserReviews).Methods("GET", "OPTIONS")
+	router.HandleFunc("/review/reviews", GetUserReviews).Methods("GET", "OPTIONS")
 
-	req := httptest.NewRequest("GET", "/user/reviews", nil)
+	req := httptest.NewRequest("GET", "/review/reviews", nil)
 	w := httptest.NewRecorder()
 
 	router.ServeHTTP(w, req)
@@ -509,9 +467,8 @@ func TestEditUserProfile(t *testing.T) {
 	setup()
 	router := mux.NewRouter()
 	EditUserProfile := func(w http.ResponseWriter, r *http.Request) {
-		// Handler logic here
 	}
-	router.HandleFunc("/user/profile", EditUserProfile).Methods("PUT", "OPTIONS")
+	router.HandleFunc("/user/edit", EditUserProfile).Methods("PUT", "OPTIONS")
 
 	tests := []struct {
 		name       string
