@@ -9,36 +9,35 @@ import (
 
 	"NYANIMEBACKEND/controller"
 	"NYANIMEBACKEND/models"
+	"NYANIMEBACKEND/utils"
 
 	"github.com/gorilla/mux"
 )
 
 func setup() {
 	InitTestDB()
+	utils.DB = DB
 }
 
 func TestRegister(t *testing.T) {
-	setup()
+	setup() // Inisialisasi database dan router
 	router := mux.NewRouter()
-	router.HandleFunc("user/register", controller.Register).Methods("POST", "OPTIONS")
+	router.HandleFunc("/user/register", controller.Register).Methods("POST", "OPTIONS")
 
 	tests := []struct {
 		name       string
 		body       models.User
 		statusCode int
-	}{}
-
-	existingUser := models.User{
-		Username: "existinguser",
-		Email:    "tess@example.com",
-		Password: "hashedpassword",
+	}{
+		{"ValidRegister", models.User{Username: "newsuser", Email: "barus@example.com", Password: "password"}, http.StatusCreated},
+		{"InvalidRegister", models.User{Username: "", Email: "salah@example.com", Password: "password"}, http.StatusBadRequest},
+		{"EmailAlreadyExists", models.User{Username: "existinguser", Email: "sudahadda@example.com", Password: "password"}, http.StatusConflict},
 	}
-	DB.Create(&existingUser)
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			body, _ := json.Marshal(tt.body)
-			req := httptest.NewRequest("POST", "user/register", bytes.NewBuffer(body))
+			req := httptest.NewRequest("POST", "/user/register", bytes.NewBuffer(body))
 			req.Header.Set("Content-Type", "application/json")
 			w := httptest.NewRecorder()
 
@@ -50,24 +49,24 @@ func TestRegister(t *testing.T) {
 		})
 	}
 }
-
 func TestLogin(t *testing.T) {
 	setup()
 	router := mux.NewRouter()
-	Login := func(w http.ResponseWriter, r *http.Request) {
-	}
-	router.HandleFunc("user/login", Login).Methods("POST", "OPTIONS")
+	router.HandleFunc("/user/login", controller.Login).Methods("POST", "OPTIONS")
 
 	tests := []struct {
 		name       string
 		body       map[string]string
 		statusCode int
-	}{}
+	}{
+		{"ValidLogin", map[string]string{"username": "newsuser", "password": "password"}, http.StatusOK},
+		{"InvalidLogin", map[string]string{"username": "", "password": "password"}, http.StatusUnauthorized},
+	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			body, _ := json.Marshal(tt.body)
-			req := httptest.NewRequest("POST", "/login", bytes.NewBuffer(body))
+			req := httptest.NewRequest("POST", "/user/login", bytes.NewBuffer(body))
 			req.Header.Set("Content-Type", "application/json")
 			w := httptest.NewRecorder()
 
@@ -85,17 +84,20 @@ func TestLogout(t *testing.T) {
 	router := mux.NewRouter()
 	Logout := func(w http.ResponseWriter, r *http.Request) {
 	}
-	router.HandleFunc("user/logout", Logout).Methods("POST", "OPTIONS")
+	router.HandleFunc("/user/logout", Logout).Methods("POST", "OPTIONS")
 
 	tests := []struct {
 		name       string
 		authHeader string
 		statusCode int
-	}{}
+	}{
+		{"ValidLogout", "Bearer validtoken", http.StatusOK},
+		{"InvalidLogout", "", http.StatusUnauthorized},
+	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			req := httptest.NewRequest("POST", "/logout", nil)
+			req := httptest.NewRequest("POST", "/user/logout", nil)
 			if tt.authHeader != "" {
 				req.Header.Set("Authorization", tt.authHeader)
 			}
@@ -218,14 +220,17 @@ func TestAddReview(t *testing.T) {
 	router := mux.NewRouter()
 	AddReview := func(w http.ResponseWriter, r *http.Request) {
 	}
-	router.HandleFunc("/anime/{anime_id}", AddReview).Methods("POST", "OPTIONS")
+	router.HandleFunc("/anime/{anime_id}/reviews", AddReview).Methods("POST", "OPTIONS")
 
 	tests := []struct {
 		name       string
 		animeID    string
 		body       models.Review
 		statusCode int
-	}{}
+	}{
+		{"ValidReview", "1", models.Review{Content: "Great anime!", Rating: 5}, http.StatusOK},
+		{"InvalidReview", "1", models.Review{Content: "", Rating: 0}, http.StatusBadRequest},
+	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -333,13 +338,16 @@ func TestDeleteReview(t *testing.T) {
 	router := mux.NewRouter()
 	DeleteReview := func(w http.ResponseWriter, r *http.Request) {
 	}
-	router.HandleFunc("/anime/{anime_id}", DeleteReview).Methods("DELETE", "OPTIONS")
+	router.HandleFunc("/reviews/{review_id}", DeleteReview).Methods("DELETE", "OPTIONS")
 
 	tests := []struct {
 		name       string
 		reviewID   string
 		statusCode int
-	}{}
+	}{
+		{"ValidDelete", "1", http.StatusOK},
+		{"InvalidDelete", "999", http.StatusConflict},
+	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -360,14 +368,17 @@ func TestAddFavorite(t *testing.T) {
 	router := mux.NewRouter()
 	AddFavorite := func(w http.ResponseWriter, r *http.Request) {
 	}
-	router.HandleFunc("/favorites/{anime_id}", AddFavorite).Methods("POST", "OPTIONS")
+	router.HandleFunc("/anime/{anime_id}/favorites", AddFavorite).Methods("POST", "OPTIONS")
 
 	tests := []struct {
 		name       string
 		animeID    string
 		body       models.Favorite
 		statusCode int
-	}{}
+	}{
+		{"ValidFavorite", "1", models.Favorite{UserID: 1, AnimeID: 1}, http.StatusOK},
+		{"InvalidFavorite", "999", models.Favorite{UserID: 1, AnimeID: 999}, http.StatusBadRequest},
+	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -468,13 +479,16 @@ func TestEditUserProfile(t *testing.T) {
 	router := mux.NewRouter()
 	EditUserProfile := func(w http.ResponseWriter, r *http.Request) {
 	}
-	router.HandleFunc("/user/edit", EditUserProfile).Methods("PUT", "OPTIONS")
+	router.HandleFunc("/user/profile", EditUserProfile).Methods("PUT", "OPTIONS")
 
 	tests := []struct {
 		name       string
 		body       models.User
 		statusCode int
-	}{}
+	}{
+		{"ValidEdit", models.User{Username: "updateduser", Email: "updated@example.com"}, http.StatusOK},
+		{"InvalidEdit", models.User{Username: "", Email: "invalid"}, http.StatusBadRequest},
+	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
